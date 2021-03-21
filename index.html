@@ -1,0 +1,100 @@
+<!-- Node.js用のToDoアプリの表示用Webページ (..\server.js \public\client.js とセットで作動する。) -->
+<!doctype html>
+<html>
+<head>
+    <title>Todo List</title>
+    <link rel="stylesheet" href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="client.js"></script>
+</head>
+<body>
+    <div class="container">
+      <h1>Task List</h1>
+
+      <div class="form-group">
+          <input type="text" name="name" class="new-todo-text form-control" placeholder="task">
+          <button type="submit" class="btn btn-default" onclick="createTodo()">Add</button>
+      </div>
+
+      <h2>Current Tasks</h2>
+      <table class="table table-striped task-table">
+          <thead>
+              <th>Task</th><th>&nbsp;</th>
+          </thead>
+
+          <tbody class="todos">
+              <tr class="todo template" style="display: none;">
+                  <td>
+                      <span class="text"></span>
+                      <span class="id" style="display: none;"></span>
+                  </td>
+                  <td>
+                      <button onclick="deleteTodo(this)">Delete</button>
+                  </td>
+              </tr>
+          </tbody>
+      </table>
+    </div>
+</body>
+</html>
+このHTMLファイルを見ていきましょう。ヘッダでは、Milligramという簡単に利用できるCSSフレームワークと、jQueryと、あとで作成するclient.jsファイルを読み込んでいます。
+
+"Add ToDo"ボタンでは、クリックされたときに"createTodo()"関数を呼び出します。
+
+ToDo一覧表示はテーブルで行います。＜tr＞タグの中は繰り返し表示する内容で、client.jsで処理します。"Delete"ボタンが押されたら、削除動作を行う"deleteTodo()"関数を呼び出します。
+
+ToDoリストの作成(クライアントJavaScript)
+次に、ブラウザで動作するクライアントサイドJavaScriptのコードを書いていきましょう。
+
+PaizaCloudで"public"フォルダを右クリックし、"client.js"ファイルを作成します。
+
+作成した"client.js"ファイルに以下のように記述します。
+
+public/client.js:
+
+function render(todos){
+    $(".todos").children().not(".template").remove();
+    const template = $(".todos").children(".template");
+
+    todos.forEach((todo) => {
+        const node = template.clone(true).show().removeClass("template")
+
+        node.find(".text").text(todo.text);
+        node.find(".id").text(todo._id);
+        $(".todos").append(node);
+    });
+}
+function getTodos(){
+    fetch('/api/todos')
+        .then((data) => data.json())
+        .then((json) => {
+            const todos = json;
+            render(todos);
+        });
+}
+
+function createTodo(){
+    const text = $(".new-todo-text").val();
+    fetch('/api/todos', {
+            method:"POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({text: text}),
+        })
+        .then(() => {
+            getTodos();
+        });
+}
+
+function deleteTodo(el){
+    const id = $(el).closest(".todo").find(".id").text();
+    fetch(`/api/todos/${id}`, {
+            method: 'DELETE'
+        })
+        .then(() => {
+            getTodos();
+        });
+}
+
+$(getTodos);
